@@ -34,11 +34,14 @@ You can think of it as a lightweight, offline-friendly “LLM-to-SQL” bridge f
 1. **Clone the repo**
    ```bash
    git clone https://github.com/your-username/ask-duckdb.git
-   cd ask-duckdb```
+   cd ask-duckdb
+   ```
 
 2. **Install dependencies***
 
-`pip install duckdb openai mistralai pandas`
+```bash
+pip install duckdb openai mistralai pandas`
+```
 
 3. **Set your API keys**
 ```bash
