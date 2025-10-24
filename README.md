@@ -37,8 +37,7 @@ You can think of it as a lightweight, offline-friendly “LLM-to-SQL” bridge f
    cd ask-duckdb
    ```
 
-2. **Install dependencies***
-
+2. **Install dependencies**
 ```bash
 pip install duckdb openai mistralai pandas`
 ```
