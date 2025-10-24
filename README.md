@@ -41,7 +41,7 @@ You can think of it as a lightweight, offline-friendly “LLM-to-SQL” bridge f
 `pip install duckdb openai mistralai pandas`
 
 3. **Set your API keys**
-```
+```bash
 export GEMINI_API_KEY="your_gemini_key"
 export MISTRAL_API_KEY="your_mistral_key"
 ```
