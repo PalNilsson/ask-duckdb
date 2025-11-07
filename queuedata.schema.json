@@ -19,13 +19,17 @@
       "name": "acopytools",
       "type": "JSON",
       "description": "Advanced copy tools configuration. A dictionary mapping transfer types to lists of supported copytools and corresponding activities.",
-      "aliases": [],
-      "importance": 5,
+      "aliases": ["activity copytools"],
+      "importance": 6,
       "allowed_values": {
         "pr": ["rucio", "mv", "cp", "xrdcp", "objectstore", "gfal", "gs", "lsm", "s3"],
         "pw": ["rucio", "mv", "cp", "xrdcp", "objectstore", "gfal", "gs", "lsm", "s3"],
         "read_lan": ["rucio", "mv", "cp", "xrdcp", "objectstore", "gfal", "gs", "lsm", "s3"],
         "write_lan": ["rucio", "mv", "cp", "xrdcp", "objectstore", "gfal", "gs", "lsm", "s3"]
+      },
+      "duckdb_access": {
+        "example": "json_extract(acopytools, '$.pr[0]')",
+        "exists_key": "json_extract(acopytools, '$.pr') IS NOT NULL"
       },
       "canonicalization": {
         "case": "none",
@@ -35,7 +39,7 @@
     {
       "name": "allow_lan",
       "type": "VARCHAR",
-      "description": "Allow or disallow LAN (local area network) transfers within a grid site",
+      "description": "Allow or disallow LAN (local area network) for stage-in transfers within a grid site",
       "aliases": [],
       "importance": 5,
       "allowed_values": ["true", "false"],
@@ -47,7 +51,7 @@
     {
       "name": "allow_wan",
       "type": "VARCHAR",
-      "description": "Allow or disallow WAN (wide area network) transfers between grid sites",
+      "description": "Allow or disallow WAN (wide area network) for stage-in transfers between grid sites",
       "aliases": [],
       "importance": 5,
       "allowed_values": ["true", "false"],
@@ -60,7 +64,7 @@
       "name": "appdir",
       "type": "VARCHAR",
       "description": "Application directory where the PanDA pilot can find source code for applications",
-      "aliases": [],
+      "aliases": ["application directory"],
       "importance": 5,
       "allowed_values": [],
       "canonicalization": {
@@ -70,11 +74,34 @@
     },
     {
       "name": "astorages",
-      "type": "VARCHAR",
-      "description": "",
-      "aliases": [],
-      "importance": 5,
-      "allowed_values": [],
+      "type": "JSON",
+      "description": "Dictionary mapping activity types to lists of storage destinations (RSEs) for each activity.",
+      "aliases": ["activity_storages", "activity storages"],
+      "importance": 6,
+      "allowed_values": {
+        "pr": [
+          "AGLT2_DATADISK",
+          "AGLT2_CALIBDISK",
+          "AGLT2_LOCALGROUPDISK",
+          "AGLT2_SCRATCHDISK"
+        ],
+        "pw": [
+          "AGLT2_DATADISK"
+        ],
+        "read_lan": [
+          "AGLT2_DATADISK"
+        ],
+        "write_lan": [
+          "AGLT2_SCRATCHDISK"
+        ]
+      },
+      "duckdb_access": {
+        "example": "json_extract(astorages, '$.pr[0]')",
+        "exists_key": "json_extract(astorages, '$.pr') IS NOT NULL",
+        "contains_value": "json_extract(astorages, '$.pr') LIKE '%DATADISK%'",
+        "generic_contains": "json(astorages)::STRING LIKE '%AGLT2_DATADISK%'",
+        "note": "Use json_extract() to inspect nested lists for specific RSEs; cast to STRING for LIKE-based searches if structure is unknown."
+      },
       "canonicalization": {
         "case": "none",
         "map_values": {}
@@ -83,8 +110,8 @@
     {
       "name": "atlas_site",
       "type": "VARCHAR",
-      "description": "",
-      "aliases": [],
+      "description": "The ATLAS site name associated with the queue.",
+      "aliases": ["atlas site name", "atlas site"],
       "importance": 5,
       "allowed_values": [],
       "canonicalization": {
@@ -94,22 +121,27 @@
     },
     {
       "name": "availablecpu",
-      "type": "VARCHAR",
-      "description": "",
-      "aliases": [],
+      "type": "INTEGER",
+      "description": "The total capacity of the site as seen by ATLAS measured in HS06 units.  It could be the entire capacity of the site, the capacity of the ATLAS share, or the capacity of the ATLAS share plus an average capacity increment from opportunistic ATLAS use of non-ATLAS resources at the site. It is the amount of real CPU compared to pledged CPU",
+      "aliases": ["available cpu"],
       "importance": 5,
-      "allowed_values": [],
+      "allowed_values": {
+        "range": [0, null],
+        "notes": "Represents the CPU measured in HS06 units available to this queue or resource; null if unknown."
+      },
       "canonicalization": {
         "case": "none",
-        "map_values": {}
-      }
+        "map_values": {
+          "NULL": null
+        }
+  }
     },
     {
       "name": "cachedse",
       "type": "VARCHAR",
-      "description": "",
+      "description": "This field is deprecated, and was used long ago for PD2P data placement.",
       "aliases": [],
-      "importance": 5,
+      "importance": 1,
       "allowed_values": [],
       "canonicalization": {
         "case": "none",
@@ -119,7 +151,7 @@
     {
       "name": "capability",
       "type": "VARCHAR",
-      "description": "",
+      "description": "A string indicating the capability level of the queue.",
       "aliases": [],
       "importance": 5,
       "allowed_values": [],
@@ -131,8 +163,8 @@
     {
       "name": "catchall",
       "type": "VARCHAR",
-      "description": "",
-      "aliases": [],
+      "description": "A general purpose field for miscellaneous information about the queue.",
+      "aliases": ["catch all"],
       "importance": 5,
       "allowed_values": [],
       "canonicalization": {
@@ -143,19 +175,21 @@
     {
       "name": "cloud",
       "type": "VARCHAR",
-      "description": "",
+      "description": "The cloud to which the queue belongs.",
       "aliases": [],
       "importance": 5,
-      "allowed_values": [],
+      "allowed_values": ["CA", "CERN", "DE", "ES", "FR", "IT", "ND", "NL", "RU", "UK", "US", "WORLD"],
       "canonicalization": {
-        "case": "none",
-        "map_values": {}
+        "case": "upper",
+        "map_values": {
+          "source_literal": "canonical_literal"
+        }
       }
     },
     {
       "name": "comment",
       "type": "VARCHAR",
-      "description": "",
+      "description": "A free-text comment about the queue.",
       "aliases": [],
       "importance": 5,
       "allowed_values": [],
@@ -167,8 +201,8 @@
     {
       "name": "container_options",
       "type": "VARCHAR",
-      "description": "",
-      "aliases": [],
+      "description": "Options for container (apptainer or singularity) execution environments.",
+      "aliases": ["container options"],
       "importance": 5,
       "allowed_values": [],
       "canonicalization": {
@@ -179,10 +213,10 @@
     {
       "name": "container_type",
       "type": "VARCHAR",
-      "description": "",
+      "description": "Container setup or usage instructions, specifically if the pilot wrapper, pilot itself, or the middleware executed by the pilot, should use containerisation. If the pilot wrapper is to use containerisation, this will be indicated by 'singularity:wrapper' or 'apptainer:wrapper'' and similar for pilot and middleware (e.g. 'apptainer:pilot'). The field may also contain two such instructions, e.g. ''apptainer:wrapper;container:middleware''.",
       "aliases": [],
-      "importance": 5,
-      "allowed_values": [],
+      "importance": 6,
+      "allowed_values": ["apptainer:wrapper", "apptainer:pilot", "container:middleware", "singularity:wrapper", "singularity:pilot", "apptainer:wrapper;container:middleware", "singularity:wrapper;container:middleware", "apptainer:wrapper;apptainer:pilot", "singularity:wrapper;singularity:pilot", "apptainer:pilot;container:middleware", "singularity:pilot;container:middleware"],
       "canonicalization": {
         "case": "none",
         "map_values": {}
@@ -190,44 +224,87 @@
     },
     {
       "name": "copytools",
-      "type": "VARCHAR",
-      "description": "",
-      "aliases": [],
-      "importance": 5,
-      "allowed_values": [],
+      "type": "JSON",
+      "description": "Dictionary mapping copy tool names to configuration objects containing setup information (typically shell scripts or environment paths).",
+      "aliases": ["copy tools"],
+      "importance": 7,
+      "allowed_values": {
+        "rucio": {
+          "setup": ""
+        },
+        "xrdcp": {
+          "setup": "$VO_ATLAS_SW_DIR/local/xrootdsetup.sh"
+        },
+        "mv": {
+          "setup": ""
+        },
+        "objectstore": {
+          "setup": ""
+        }
+      },
+      "duckdb_access": {
+        "example": "json_extract(copytools, '$.rucio.setup')",
+        "exists_key": "json_extract(copytools, '$.rucio') IS NOT NULL",
+        "contains_key": "json_extract(copytools, '$.xrdcp') IS NOT NULL",
+        "generic_contains": "json(copytools)::STRING LIKE '%rucio%'",
+        "note": "Use json_extract() to inspect available copy tool configurations. Each tool key (e.g. 'rucio', 'xrdcp') contains a nested 'setup' entry that may specify initialization scripts or configuration paths."
+      },
       "canonicalization": {
-        "case": "none",
-        "map_values": {}
+        "case": "lower",
+        "map_values": {
+          "RUCIO": "rucio",
+          "XRDCP": "xrdcp",
+          "MV": "mv",
+          "OBJECTSTORE": "objectstore"
+        }
       }
     },
     {
       "name": "corecount",
-      "type": "VARCHAR",
-      "description": "",
-      "aliases": [],
-      "importance": 5,
-      "allowed_values": [],
+      "type": "INTEGER",
+      "description": "The number of CPU cores allocated per job.",
+      "aliases": ["ncores", "cpu_cores", "core_count", "core count"],
+      "importance": 7,
+      "allowed_values": {
+        "range": [1, 256],
+        "special_values": {
+          "null": "Value not available or unspecified."
+        },
+        "notes": "Typically between 1 and 256. Reflects job-level CPU parallelism (number of cores requested or allocated per job)."
+      },
       "canonicalization": {
         "case": "none",
-        "map_values": {}
+        "map_values": {
+          "NULL": null
+        }
       }
     },
     {
       "name": "coreenergy",
       "type": "DOUBLE",
-      "description": "",
-      "aliases": [],
-      "importance": 5,
-      "allowed_values": [],
+      "description": "Average power consumption per core (in Watts).",
+      "aliases": ["core_energy", "power_per_core"],
+      "importance": 6,
+      "allowed_values": {
+        "range": [0.0, 20.0],
+        "typical_values": [5.0, 10.0],
+        "special_values": {
+          "null": "Value not available or not measured."
+        },
+        "units": "Watts",
+        "notes": "Represents the average power draw per CPU core during job execution, in watts. Typical values are between 5 and 10."
+      },
       "canonicalization": {
         "case": "none",
-        "map_values": {}
+        "map_values": {
+          "NULL": null
+        }
       }
     },
     {
       "name": "coreenergy_data",
       "type": "VARCHAR",
-      "description": "",
+      "description": "Ignore this field as it is not documented properly.",
       "aliases": [],
       "importance": 5,
       "allowed_values": [],
@@ -239,19 +316,28 @@
     {
       "name": "corepower",
       "type": "DOUBLE",
-      "description": "",
-      "aliases": [],
-      "importance": 5,
-      "allowed_values": [],
+      "description": "Benchmark result in HS06 indicating how powerful the queue is.",
+      "aliases": ["core power", "core_power", "cpu_power_per_core"],
+      "importance": 6,
+      "allowed_values": {
+        "range": [0.0, 20.0],
+        "typical_values": [5.0, 10.0],
+        "special_values": {
+          "null": "Value not available or not measured."
+        },
+        "units": "HS06",
+      },
       "canonicalization": {
         "case": "none",
-        "map_values": {}
+        "map_values": {
+          "NULL": null
+        }
       }
     },
     {
       "name": "corepower_data",
       "type": "VARCHAR",
-      "description": "",
+      "description": "Ignore this field as it is not documented properly.",
       "aliases": [],
       "importance": 5,
       "allowed_values": [],
@@ -730,14 +816,24 @@
     },
     {
       "name": "pledgedcpu",
-      "type": "VARCHAR",
-      "description": "",
-      "aliases": [],
-      "importance": 5,
-      "allowed_values": [],
+      "type": "INTEGER",
+      "description": "CPU Pledges (MoU) in HS06. If PLEDGEDCPU = 0, it is not used in brokerage decisions.",
+      "aliases": ["pledged cpu"],
+      "importance": 6,
+      "allowed_values": {
+        "range": [-1, null],
+        "special_values": {
+          "-1": "Indicates undefined or no CPU pledge information.",
+          "null": "Value not available or not reported."
+        },
+        "notes": "Represents the CPU (in HS06) pledged to this resource or site."
+      },
       "canonicalization": {
         "case": "none",
-        "map_values": {}
+        "map_values": {
+          "NULL": null,
+          "-1": -1
+        }
       }
     },
     {
@@ -959,14 +1055,21 @@
     {
       "name": "status",
       "type": "VARCHAR",
-      "description": "",
+      "description": "Operational status of the queue; lowercase canonical values.",
       "aliases": [],
-      "importance": 5,
-      "allowed_values": [],
+      "importance": 10,
+      "allowed_values": ["online", "offline", "test", "brokeroff"],
       "canonicalization": {
-        "case": "none",
-        "map_values": {}
-      }
+        "case": "lower",
+        "map_values": {
+          "ONLINE": "online",
+          "Online": "online",
+          "OFFLINE": "offline",
+          "Offline": "offline",
+          "BROKEROFF": "brokeroff",
+          "Brokeroff": "brokeroff"
+        }
+  }
     },
     {
       "name": "tier",
