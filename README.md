@@ -3,7 +3,10 @@
 **Ask DuckDB** lets you query DuckDB databases using natural language questions powered by modern LLMs (Gemini 2.5 / Mistral Large / others).
 It’s part of the *Ask PanDA* ecosystem, providing an intelligent interface between human queries and structured SQL data.
 
+**Note** You need to provide a DuckDB database file. If you want to produce one for ATLAS queuedata, please see the json2duckdb tool provided separately.
+
 ---
+
 
 ## 🚀 Overview
 
