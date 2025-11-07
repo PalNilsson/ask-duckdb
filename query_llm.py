@@ -7,13 +7,14 @@ import argparse
 import sys
 import os
 import re
+import json
 import duckdb
 import difflib
-from typing import Optional, Set, List
+from typing import Optional, Set, List, Dict, Any
 
 
 # =========================
-# Prompt templates
+# Prompt templates (unchanged)
 # =========================
 
 user_template = "Write an SQL query that returns - {}"
@@ -41,114 +42,119 @@ SELECT name FROM {tbl} WHERE LOWER(status) = 'online';
 # =========================
 
 def qident(name: str) -> str:
-    """Quote an SQL identifier for DuckDB.
-
-    Args:
-        name: Unquoted identifier (schema, table, or column name).
-
-    Returns:
-        The identifier quoted with double quotes, with embedded quotes escaped.
-    """
+    """Quote an SQL identifier for DuckDB."""
     return '"' + name.replace('"', '""') + '"'
 
 
 def is_markdown_code_chunk(text: str) -> bool:
-    """Check if text contains a Markdown fenced code block.
-
-    Args:
-        text: Text to inspect.
-
-    Returns:
-        True if a fenced block like ```...``` is present, otherwise False.
-    """
-    pattern = r"```[^`]*```"
-    return bool(re.search(pattern, text, re.DOTALL))
+    """Check if text contains a Markdown fenced code block."""
+    return bool(re.search(r"```[^`]*```", text, re.DOTALL))
 
 
 def extract_code_from_markdown(markdown_text: str) -> Optional[str]:
-    """Extract code content from the first Markdown fenced code block.
-
-    Args:
-        markdown_text: Text that may contain a fenced code block.
-
-    Returns:
-        The inner code content if found, else None.
-    """
-    pattern = r"```(.*?)\n(?P<code>.*?)\n```"
-    match = re.search(pattern, markdown_text, re.DOTALL)
-    return match.group("code") if match else None
+    """Extract code content from the first Markdown fenced code block."""
+    m = re.search(r"```(.*?)\n(?P<code>.*?)\n```", markdown_text, re.DOTALL)
+    return m.group("code") if m else None
 
 
 # =========================
 # Schema helpers
 # =========================
 
+def describe_columns(db: duckdb.DuckDBPyConnection, tbl_name: str) -> List[Dict[str, str]]:
+    """Return column metadata (name, type) via DESCRIBE SELECT *."""
+    rows = db.sql("DESCRIBE SELECT * FROM " + qident(tbl_name) + ";").fetchall()
+    # DuckDB DESCRIBE rows: (column_name, column_type, null, key, default, extra)
+    return [{"name": r[0], "type": r[1]} for r in rows]
+
+
 def build_tbl_schema(db: duckdb.DuckDBPyConnection, tbl_name: str) -> str:
-    """Build a compact CREATE TABLE column list using DESCRIBE.
-
-    Args:
-        db: Open DuckDB connection.
-        tbl_name: Table name to describe.
-
-    Returns:
-        A string like: "col1 TYPE, col2 TYPE, ...", suitable for prompt DDL.
-    """
-    desc = db.sql("DESCRIBE SELECT * FROM " + qident(tbl_name) + ";")
-    col_attr = desc.df()[["column_name", "column_type"]]
-    col_attr["column_joint"] = col_attr["column_name"] + " " + col_attr["column_type"]
-    return (
-        str(list(col_attr["column_joint"].values))
-        .replace("[", "")
-        .replace("]", "")
-        .replace("'", "")
-    )
+    """Build a compact CREATE TABLE column list for prompts."""
+    cols = describe_columns(db, tbl_name)
+    return ", ".join(f"{c['name']} {c['type']}" for c in cols)
 
 
 def list_columns(db: duckdb.DuckDBPyConnection, tbl_name: str) -> List[str]:
-    """List column names for a table using DESCRIBE.
-
-    Args:
-        db: Open DuckDB connection.
-        tbl_name: Table name to list columns for.
-
-    Returns:
-        List of column names in order.
-    """
-    rows = db.sql("DESCRIBE SELECT * FROM " + qident(tbl_name) + ";").fetchall()
-    return [r[0] for r in rows]
+    """List column names for a table using DESCRIBE."""
+    return [c["name"] for c in describe_columns(db, tbl_name)]
 
 
 # =========================
-# SQL auto-repair
+# NEW: Schema JSON skeleton generator
+# =========================
+
+def _default_canonicalization_for(col_type: str) -> Dict[str, Any]:
+    """Suggest a canonicalization skeleton based on type."""
+    # For text-like columns we often want case normalization. Leave 'none' by default.
+    textlike = any(t in col_type.upper() for t in ("CHAR", "STRING", "TEXT", "VARCHAR"))
+    return {
+        "case": "none" if not textlike else "none",  # set to 'lower' manually later if desired
+        "map_values": {}
+    }
+
+def _default_duckdb_access_for(col_name: str, col_type: str) -> Dict[str, Any]:
+    """Suggest access tips for complex types (JSON/MAP/STRUCT)."""
+    u = col_type.upper()
+    access: Dict[str, Any] = {}
+    if "JSON" in u:
+        access = {
+            "exists_key": f"json_extract({col_name}, '$.rucio') IS NOT NULL",
+            "get_setup": f"json_extract({col_name}, '$.rucio.setup')"
+        }
+    elif "STRUCT" in u:
+        access = {"example": f"{col_name}.field"}
+    elif "MAP" in u:
+        access = {"example": f"{col_name}['key']"}
+    return access
+
+def make_schema_skeleton(table: str, cols: List[Dict[str, str]]) -> Dict[str, Any]:
+    """Create a skeleton metadata JSON structure for a table."""
+    skeleton_cols: List[Dict[str, Any]] = []
+    for c in cols:
+        entry: Dict[str, Any] = {
+            "name": c["name"],
+            "type": c["type"],
+            "description": "",
+            "aliases": [],
+            "importance": 5,
+            "allowed_values": [],
+            "canonicalization": _default_canonicalization_for(c["type"]),
+        }
+        access = _default_duckdb_access_for(c["name"], c["type"])
+        if access:
+            entry["duckdb_access"] = access
+        skeleton_cols.append(entry)
+
+    return {
+        "version": "1.0",
+        "table": table,
+        "notes": "Auto-generated skeleton. Fill in descriptions, rules, aliases, and any canonicalization/allowed_values.",
+        "columns": skeleton_cols,
+        "rules": []
+    }
+
+def write_schema_skeleton(path: str, data: Dict[str, Any]) -> None:
+    """Write the schema skeleton JSON to disk."""
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    print(f"Wrote schema skeleton to: {path}")
+
+
+# =========================
+# SQL auto-repair (existing)
 # =========================
 
 def fix_common_mistakes(sql: str, actual_cols: Set[str]) -> str:
-    """Repair common LLM SQL mistakes using the real schema.
-
-    The function:
-      1) Rewrites `state` -> `status` if `state` is not a column but `status` is.
-      2) Normalizes `'ONLINE'` (any case) to `'online'`.
-      3) Fuzzy-corrects unknown identifiers to the closest actual column.
-
-    Args:
-        sql: The SQL string produced by an LLM.
-        actual_cols: The actual set of column names present in the table.
-
-    Returns:
-        A potentially corrected SQL string that better matches the real schema.
-    """
+    """Repair common LLM SQL mistakes using the real schema."""
     fixed = sql
 
-    # 1) Use `status` instead of `state` when appropriate
     tokens = re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*)\b", fixed)
     if "state" in tokens:
         if "status" in actual_cols and "state" not in actual_cols:
             fixed = re.sub(r"\bstate\b", "status", fixed)
 
-    # 2) Normalize ONLINE literal to lowercase 'online'
     fixed = re.sub(r"=\s*'ONLINE'", "='online'", fixed, flags=re.IGNORECASE)
 
-    # 3) Fuzzy fix other unknown identifiers (avoid SQL keywords)
     keywords = {
         "select","from","where","and","or","not","in","as","on","join","left","right",
         "inner","outer","group","by","order","limit","offset","having","distinct",
@@ -166,24 +172,11 @@ def fix_common_mistakes(sql: str, actual_cols: Set[str]) -> str:
 
 
 # =========================
-# LLM clients
+# LLM clients (existing)
 # =========================
 
 def ask_gemini(system: str, user: str, model: str, api_key: Optional[str] = None) -> str:
-    """Call Gemini (OpenAI-compatible endpoint) and return raw text.
-
-    Args:
-        system: System prompt string.
-        user: User prompt string.
-        model: Model name (e.g., "gemini-2.5-flash").
-        api_key: Optional API key; falls back to GEMINI_API_KEY env var.
-
-    Returns:
-        Raw text from `response.choices[0].message.content`.
-
-    Raises:
-        RuntimeError: If the API key is missing or the response is invalid.
-    """
+    """Call Gemini (OpenAI-compatible endpoint) and return raw text."""
     gemini_api_key = api_key or os.environ.get("GEMINI_API_KEY")
     if not gemini_api_key:
         raise RuntimeError("GEMINI_API_KEY not set.")
@@ -207,20 +200,7 @@ def ask_gemini(system: str, user: str, model: str, api_key: Optional[str] = None
 
 
 def ask_mistral(system: str, user: str, model: str, api_key: Optional[str] = None) -> str:
-    """Call Mistral and return raw text.
-
-    Args:
-        system: System prompt string.
-        user: User prompt string.
-        model: Model name (e.g., "mistral-small-latest").
-        api_key: Optional API key; falls back to MISTRAL_API_KEY env var.
-
-    Returns:
-        Raw text from `response.choices[0].message.content`.
-
-    Raises:
-        RuntimeError: If the API key is missing or the response is invalid.
-    """
+    """Call Mistral and return raw text."""
     mistral_api_key = api_key or os.environ.get("MISTRAL_API_KEY")
     if not mistral_api_key:
         raise RuntimeError("MISTRAL_API_KEY not set.")
@@ -241,20 +221,11 @@ def ask_mistral(system: str, user: str, model: str, api_key: Optional[str] = Non
 
 
 # =========================
-# Execution
+# Execution (existing)
 # =========================
 
 def execute_and_display(db: duckdb.DuckDBPyConnection, sql: str, max_rows_print: int = 1000) -> None:
-    """Execute SQL on DuckDB and print results.
-
-    Args:
-        db: Open DuckDB connection.
-        sql: SQL string to execute.
-        max_rows_print: Maximum number of rows to print before truncation.
-
-    Raises:
-        SystemExit: With code 4 if SQL execution fails.
-    """
+    """Execute SQL on DuckDB and print results."""
     try:
         df = db.sql(sql).df()
     except Exception as e:
@@ -276,23 +247,24 @@ def execute_and_display(db: duckdb.DuckDBPyConnection, sql: str, max_rows_print:
 # =========================
 
 def main() -> None:
-    """CLI entry point for generating SQL via LLM and executing in DuckDB.
-
-    Parses CLI args, opens the database, builds the schema-aware prompts,
-    calls the chosen LLM, cleans and repairs the SQL, then executes it.
-    """
+    """CLI entry point."""
     ap = argparse.ArgumentParser(
-        description="Generate SQL from a question and run it on DuckDB with schema-aware auto-repair."
+        description="Generate SQL from a question and run it on DuckDB; also supports schema skeleton generation."
     )
     ap.add_argument("--db", default="queuedata.db", help="Path to DuckDB file (default: queuedata.db)")
-    ap.add_argument("--question", required=True, help="Natural-language question to turn into SQL.")
+    ap.add_argument("--table", default="queuedata", help="Target table name (default: queuedata)")
+    ap.add_argument("--question", help="Natural-language question to turn into SQL.")
     ap.add_argument("--llm", choices=["gemini", "mistral"], default="gemini", help="LLM provider.")
     ap.add_argument("--model", help="Model name (e.g., gemini-2.5-flash, mistral-small-latest).")
+
+    # NEW: schema skeleton options
+    ap.add_argument("--generate-schema", action="store_true",
+                    help="Generate a skeleton JSON data dictionary for the table and exit.")
+    ap.add_argument("--schema-out", help="Output path for the JSON schema (default: <table>.schema.json)")
+
     args = ap.parse_args()
 
-    defaults = {"gemini": "gemini-2.5-pro", "mistral": "mistral-large-latest"}
-    model = args.model or defaults[args.llm]
-    tbl_name = "queuedata"
+    tbl_name = args.table
 
     # Open DB
     try:
@@ -310,30 +282,39 @@ def main() -> None:
         print(f"Table '{tbl_name}' not found in {args.db}.", file=sys.stderr)
         sys.exit(2)
 
-    # Prompts
+    # === NEW: handle schema skeleton generation and exit ===
+    if args.generate_schema:
+        cols = describe_columns(db, tbl_name)
+        skeleton = make_schema_skeleton(tbl_name, cols)
+        out_path = args.schema_out or f"{tbl_name}.schema.json"
+        write_schema_skeleton(out_path, skeleton)
+        return  # do not proceed with LLM flow
+
+    # --- normal LLM flow (unchanged) ---
+    if not args.question:
+        print("Error: --question is required unless --generate-schema is used.", file=sys.stderr)
+        sys.exit(2)
+
     schema_str = build_tbl_schema(db, tbl_name)
     system = system_template.format(tbl=tbl_name, schema=schema_str)
     user = user_template.format(args.question)
 
-    # LLM call
     try:
-        raw = ask_gemini(system, user, model) if args.llm == "gemini" else ask_mistral(system, user, model)
+        raw = ask_gemini(system, user, args.model or "gemini-2.5-pro") if args.llm == "gemini" \
+            else ask_mistral(system, user, args.model or "mistral-large-latest")
     except Exception as e:
         print(f"[{args.llm.capitalize()} call failed] {e}", file=sys.stderr)
         sys.exit(3)
 
-    # Clean markdown -> SQL
     sql = extract_code_from_markdown(raw) if is_markdown_code_chunk(raw) else raw
     sql = (sql or raw or "").strip()
 
-    # Auto-repair against actual schema
     cols = set(list_columns(db, tbl_name))
     repaired = fix_common_mistakes(sql, cols)
 
     print("=== Cleaned SQL ===")
     print(repaired)
 
-    # Execute
     execute_and_display(db, repaired)
 
 

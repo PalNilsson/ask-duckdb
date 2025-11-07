@@ -1,0 +1,1117 @@
+{
+  "version": "1.0",
+  "table": "queuedata",
+  "notes": "Authoritative data dictionary for CRIC queuedata containing explanations for all data fields.",
+  "columns": [
+    {
+      "name": "queue",
+      "type": "VARCHAR",
+      "description": "PanDA queue identifier.",
+      "aliases": ["name", "queue name", "queuename", "queue_name"],
+      "importance": 10,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "acopytools",
+      "type": "JSON",
+      "description": "Advanced copy tools configuration. A dictionary mapping transfer types to lists of supported copytools and corresponding activities.",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": {
+        "pr": ["rucio", "mv", "cp", "xrdcp", "objectstore", "gfal", "gs", "lsm", "s3"],
+        "pw": ["rucio", "mv", "cp", "xrdcp", "objectstore", "gfal", "gs", "lsm", "s3"],
+        "read_lan": ["rucio", "mv", "cp", "xrdcp", "objectstore", "gfal", "gs", "lsm", "s3"],
+        "write_lan": ["rucio", "mv", "cp", "xrdcp", "objectstore", "gfal", "gs", "lsm", "s3"]
+      },
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "allow_lan",
+      "type": "VARCHAR",
+      "description": "Allow or disallow LAN (local area network) transfers within a grid site",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": ["true", "false"],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "allow_wan",
+      "type": "VARCHAR",
+      "description": "Allow or disallow WAN (wide area network) transfers between grid sites",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": ["true", "false"],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "appdir",
+      "type": "VARCHAR",
+      "description": "Application directory where the PanDA pilot can find source code for applications",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "astorages",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "atlas_site",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "availablecpu",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "cachedse",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "capability",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "catchall",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "cloud",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "comment",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "container_options",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "container_type",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "copytools",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "corecount",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "coreenergy",
+      "type": "DOUBLE",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "coreenergy_data",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "corepower",
+      "type": "DOUBLE",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "corepower_data",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "country",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "countrygroup",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "depthboost",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "description",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "direct_access_lan",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "direct_access_wan",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "environ",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "fairsharepolicy",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "gocname",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "gstat",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "harvester",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "harvester_template",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "hc_param",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "hc_suite",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "id",
+      "type": "BIGINT",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "is_cvmfs",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "is_default",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "is_virtual",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "jobseed",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "last_modified",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "localqueue",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "maxdiskio",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "maxdiskio_data",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "maxinputsize",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "maxrss",
+      "type": "BIGINT",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "maxtime",
+      "type": "BIGINT",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "maxwdir",
+      "type": "BIGINT",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "meanrss",
+      "type": "BIGINT",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "minrss",
+      "type": "BIGINT",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "mintime",
+      "type": "BIGINT",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "name",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "nickname",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "nodes",
+      "type": "BIGINT",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "panda_resource",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "panda_site",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "params",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "parent",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "pilot_manager",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "pilot_version",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "pledgedcpu",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "probe",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "python_version",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "queuehours",
+      "type": "BIGINT",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "queues",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "rc",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "rc_country",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "rc_site",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "rc_site_state",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "region",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "releases",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "resource_type",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "site",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "site_state",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "siteid",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "special_par",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "state",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "state_comment",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "state_update",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "status",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "tier",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "tier_level",
+      "type": "BIGINT",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "timefloor",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "transferringlimit",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "type",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "uconfig",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "use_pcache",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "validatedreleases",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "vo_name",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "wnconnectivity",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "workflow",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    },
+    {
+      "name": "zip_time_gap",
+      "type": "VARCHAR",
+      "description": "",
+      "aliases": [],
+      "importance": 5,
+      "allowed_values": [],
+      "canonicalization": {
+        "case": "none",
+        "map_values": {}
+      }
+    }
+  ],
+  "rules": []
+}
