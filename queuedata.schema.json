@@ -281,7 +281,7 @@
     },
     {
       "name": "coreenergy",
-      "type": "DOUBLE",
+      "type": "FLOAT",
       "description": "Average power consumption per core (in Watts).",
       "aliases": ["core_energy", "power_per_core"],
       "importance": 6,
@@ -349,7 +349,7 @@
     {
       "name": "country",
       "type": "VARCHAR",
-      "description": "",
+      "description": "The country where the queue is located.",
       "aliases": [],
       "importance": 5,
       "allowed_values": [],
@@ -361,10 +361,10 @@
     {
       "name": "countrygroup",
       "type": "VARCHAR",
-      "description": "",
+      "description": "Country group selector used by the pilot for getJob requests, corresponding to the country group that the user who created the job belongs to.",
       "aliases": [],
       "importance": 5,
-      "allowed_values": [],
+      "allowed_values": ["ES", "FR", "UK", "US", "Southest Norway", "Nordic Countries", "CERN", "DE", "IT", "NL", "RU", "WORLD"],
       "canonicalization": {
         "case": "none",
         "map_values": {}
@@ -372,11 +372,18 @@
     },
     {
       "name": "depthboost",
-      "type": "VARCHAR",
-      "description": "",
+      "type": "INTEGER",
+      "description": "Multiplier applied to the base queue depth or pilot submission limit to increase concurrency or job throughput. A higher value allows proportionally more jobs or pilots to run simultaneously.",
       "aliases": [],
       "importance": 5,
-      "allowed_values": [],
+      "allowed_values": {
+        "range": [1, 10],
+        "typical_values": [1, 2, 5, 10],
+        "notes": "A scaling factor for queue or pilot depth; 1 means normal, higher values increase allowed concurrency.",
+        "special_values": {
+          "null": "Value not available or not measured."
+        },
+      },
       "canonicalization": {
         "case": "none",
         "map_values": {}
@@ -385,7 +392,7 @@
     {
       "name": "description",
       "type": "VARCHAR",
-      "description": "",
+      "description": "Free description field used to describe the queue.",
       "aliases": [],
       "importance": 5,
       "allowed_values": [],
@@ -396,35 +403,48 @@
     },
     {
       "name": "direct_access_lan",
-      "type": "VARCHAR",
-      "description": "",
+      "type": "BOOLEAN",
+      "description": "Allow LAN access for stage-in. If true, direct data access over LAN is allowed. If false, direct LAN access is disallowed.",
       "aliases": [],
-      "importance": 5,
-      "allowed_values": [],
+      "importance": 6,
+      "allowed_values": [true, false],
       "canonicalization": {
-        "case": "none",
-        "map_values": {}
+        "case": "lower",
+        "map_values": {
+          "TRUE": true,
+          "FALSE": false,
+          "1": true,
+          "0": false
+        }
       }
     },
     {
       "name": "direct_access_wan",
-      "type": "VARCHAR",
-      "description": "",
+      "type": "BOOLEAN",
+      "description": "Allow WAN access for stage-in. If true, direct data access over WAN is allowed. If false, direct WAN access is disallowed.",
       "aliases": [],
-      "importance": 5,
-      "allowed_values": [],
+      "importance": 6,
+      "allowed_values": [true, false],
       "canonicalization": {
-        "case": "none",
-        "map_values": {}
+        "case": "lower",
+        "map_values": {
+          "TRUE": true,
+          "FALSE": false,
+          "1": true,
+          "0": false
+        }
       }
     },
     {
       "name": "environ",
       "type": "VARCHAR",
-      "description": "",
-      "aliases": [],
+      "description": "This field allows specifying environment settings for the queue. It can include key-value pairs (space separated) to set up the environment for jobs running in this queue. Used by the pilot and wrapper to configure the runtime environment.",
+      "aliases": ["environment", "env", "environment_settings"],
       "importance": 5,
-      "allowed_values": [],
+      "allowed_values": {
+        "pattern": "VAR1=value1 VAR2=value2 ...",
+        "notes": "Space separated list of environment variable assignments. Example variables include PATH."
+      },
       "canonicalization": {
         "case": "none",
         "map_values": {}
@@ -433,22 +453,36 @@
     {
       "name": "fairsharepolicy",
       "type": "VARCHAR",
-      "description": "",
-      "aliases": [],
-      "importance": 5,
-      "allowed_values": [],
+      "description": "Whether different job types, priorities, groups, or gshares are allowed to run (100%) or not (0%).",
+      "aliases": ["fair_share_policy", "fs_policy", "fairshare"],
+      "importance": 6,
+      "allowed_values": {
+        "pattern": "type=<jobtype>:<percentage>%,type=<jobtype>:<percentage>%,...",
+        "example": "type=evgen:0%,type=simul:0%,type=any:100%",
+        "notes": "Comma-separated list of key-value pairs defining allowed run percentages per job type, group, or gshare. Percentages are integers from 0 to 100 followed by '%'."
+      },
+      "duckdb_access": {
+        "example": "SELECT name FROM queuedata WHERE fairsharepolicy LIKE '%type=any:100%';",
+        "contains_key": "fairsharepolicy LIKE '%type=%'",
+        "contains_value": "fairsharepolicy LIKE '%:100%'",
+        "note": "Use LIKE or regular expressions to extract specific job types and their percentages. Split by commas for per-type analysis."
+      },
       "canonicalization": {
-        "case": "none",
+        "case": "lower",
         "map_values": {}
       }
     },
     {
       "name": "gocname",
       "type": "VARCHAR",
-      "description": "",
-      "aliases": [],
-      "importance": 5,
-      "allowed_values": [],
+      "description": "Official Grid Operations Centre (GOCDB) site name associated with this queue or resource. It identifies the site as registered in the Grid Information System (e.g. EGI/WLCG).",
+      "aliases": ["goc_name", "goc_site", "gocdb_site"],
+      "importance": 6,
+      "allowed_values": {
+        "pattern": "<GOCDB site name>",
+        "example": "UKI-SOUTHGRID-OX-HEP",
+        "notes": "Matches the official site name as listed in the GOCDB (e.g., BNL-ATLAS, INFN-T1, RAL-LCG2). Usually corresponds to the higher-level site entity rather than a specific PanDA queue."
+      },
       "canonicalization": {
         "case": "none",
         "map_values": {}
@@ -457,10 +491,14 @@
     {
       "name": "gstat",
       "type": "VARCHAR",
-      "description": "",
-      "aliases": [],
+      "description": "Grid Site Monitoring (GStat) site name associated with this queue or resource. Typically identical or similar to the GOCDB site name ('gocname'), used for cross-referencing with grid monitoring systems.",
+      "aliases": ["gstat_site", "gstat_name"],
       "importance": 5,
-      "allowed_values": [],
+      "allowed_values": {
+        "pattern": "<GStat site name>",
+        "example": "UKI-SOUTHGRID-OX-HEP",
+        "notes": "Usually matches the official GOCDB site name (gocname), but may differ in a few cases."
+      },
       "canonicalization": {
         "case": "none",
         "map_values": {}
@@ -469,55 +507,118 @@
     {
       "name": "harvester",
       "type": "VARCHAR",
-      "description": "",
-      "aliases": [],
-      "importance": 5,
-      "allowed_values": [],
+      "description": "Associated Harvester Service.",
+      "aliases": ["harvester_service"],
+      "importance": 6,
+      "allowed_values": {
+        "examples": [
+          "CERN_central_A",
+          "CERN_central_B",
+          "CERN_central_ACTA",
+          "CERN_central_k8s_al9",
+          "cern_cloud",
+          "NULL"
+        ],
+        "notes": "String identifier of the Harvester service associated with the queue. May be NULL (no Harvester)."
+      },
+      "duckdb_access": {
+        "example": "SELECT name FROM queuedata WHERE LOWER(harvester) = 'cern_central_a';",
+        "is_null": "SELECT name FROM queuedata WHERE harvester IS NULL;",
+        "contains": "SELECT name FROM queuedata WHERE LOWER(harvester) LIKE '%k8s%';"
+      },
       "canonicalization": {
-        "case": "none",
-        "map_values": {}
-      }
+        "case": "lower",
+        "map_values": {
+          "NULL": null
+        }
+      },
+      "related_fields": ["harvester_template"]
     },
     {
       "name": "harvester_template",
       "type": "VARCHAR",
-      "description": "",
-      "aliases": [],
+      "description": "Harvester configuration template name associated with this queue. Defines which Harvester workflow type and submission mode are used (e.g., production vs. analysis, push vs. pull). Empty or NULL indicates no specific Harvester template is configured.",
+      "aliases": ["harvester_config", "harvester_profile"],
       "importance": 5,
-      "allowed_values": [],
+      "allowed_values": {
+        "examples": [
+          "ng.production.push",
+          "US_production_pull_intel",
+          "analysis.push",
+          "production.push",
+          "NULL"
+        ],
+        "notes": "Template names encode workflow type (e.g., production, analysis) and submission mode (push/pull). Commonly empty or NULL for queues without explicit Harvester configuration."
+      },
+      "duckdb_access": {
+        "example": "SELECT name FROM queuedata WHERE harvester_template LIKE '%production.push%';",
+        "is_null": "SELECT name FROM queuedata WHERE harvester_template IS NULL OR harvester_template = '';",
+        "contains": "SELECT name FROM queuedata WHERE harvester_template LIKE '%analysis%';"
+      },
       "canonicalization": {
-        "case": "none",
-        "map_values": {}
-      }
+        "case": "lower",
+        "map_values": {
+          "NULL": null,
+          "": null
+        }
+      },
+      "related_fields": ["harvester"]
     },
     {
       "name": "hc_param",
       "type": "VARCHAR",
-      "description": "",
-      "aliases": [],
-      "importance": 5,
-      "allowed_values": [],
+      "description": "HammerCloud (HC) configuration parameter controlling how the queue participates in automated site testing. Determines whether HammerCloud tests are enabled and whether automatic exclusion is applied based on test results.",
+      "aliases": ["hammercloud_param", "hc_mode"],
+      "importance": 6,
+      "allowed_values": {
+        "enumeration": ["False", "OnlyTest", "AutoExclusion"],
+        "notes": {
+          "False": "HammerCloud testing disabled for this queue.",
+          "OnlyTest": "Queue is used exclusively for HammerCloud test jobs.",
+          "AutoExclusion": "HammerCloud may automatically exclude the queue from PanDA submissions if tests fail."
+        }
+      },
       "canonicalization": {
-        "case": "none",
-        "map_values": {}
+        "case": "mixed",
+        "map_values": {
+          "false": "False",
+          "onlytest": "OnlyTest",
+          "autoexclusion": "AutoExclusion"
+        }
       }
     },
     {
       "name": "hc_suite",
-      "type": "VARCHAR",
-      "description": "",
-      "aliases": [],
-      "importance": 5,
-      "allowed_values": [],
+      "type": "JSON",
+      "description": "HammerCloud (HC) test suites to run for this PanDA queue. Each value is a suite identifier (e.g., AFT, PFT, PFT_MCORE, GPU, ARM). An empty list means no suites are configured.",
+      "aliases": ["hc_suites", "hammercloud_suites"],
+      "importance": 6,
+      "allowed_values": {
+        "enumeration": ["AFT", "PFT", "PFT_MCORE", "GPU", "ARM"],
+        "notes": "Array of suite codes. Multiple suites may be specified; order is not significant. The list may be empty []."
+      },
+      "duckdb_access": {
+        "example_any": "json(hc_suite)::STRING LIKE '%\"AFT\"%'",
+        "contains_aft": "json(hc_suite)::STRING LIKE '%\"AFT\"%'",
+        "contains_any_of": "json(hc_suite)::STRING LIKE '%\"AFT\"%' OR json(hc_suite)::STRING LIKE '%\"PFT\"%'",
+        "is_empty": "hc_suite = '[]' OR hc_suite IS NULL",
+        "note": "DuckDB stores arrays as JSON; use json(... )::STRING with LIKE to test membership, or json_contains() if available in your version."
+      },
       "canonicalization": {
-        "case": "none",
-        "map_values": {}
+        "case": "upper",
+        "map_values": {
+          "aft": "AFT",
+          "pft": "PFT",
+          "pft_mcore": "PFT_MCORE",
+          "gpu": "GPU",
+          "arm": "ARM"
+        }
       }
     },
     {
       "name": "id",
       "type": "BIGINT",
-      "description": "",
+      "description": "Ignore this field as it is the primary key.",
       "aliases": [],
       "importance": 5,
       "allowed_values": [],
@@ -528,14 +629,19 @@
     },
     {
       "name": "is_cvmfs",
-      "type": "VARCHAR",
-      "description": "",
+      "type": "BOOLEAN",
+      "description": "This field indicates whether CVMFS is used with this queue.",
       "aliases": [],
-      "importance": 5,
-      "allowed_values": [],
+      "importance": 6,
+      "allowed_values": [true, false],
       "canonicalization": {
-        "case": "none",
-        "map_values": {}
+        "case": "lower",
+        "map_values": {
+          "TRUE": true,
+          "FALSE": false,
+          "1": true,
+          "0": false
+        }
       }
     },
     {
