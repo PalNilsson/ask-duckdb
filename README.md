@@ -59,7 +59,7 @@ Show the DB schema for the default database.db file
 Query the database directly
 1. `python3 query_db.py --dq queuedata.db --table queuedata --query "SELECT * FROM queuedata WHERE status = 'online'"`
 
-2. Query an LLM (the SQL corresponding to the question will be generated and then executed against the database)
+Query an LLM (the SQL corresponding to the question will be generated and then executed against the database)
 1. `python3 query_llm.py --question "list all queues that are online" --llm mistral --model mistral-small-latest`
 2. `python3 query_llm.py --question "list all queues that are online that do not use the rucio copytool" --llm gemini --model gemini-2.5-flash`
 

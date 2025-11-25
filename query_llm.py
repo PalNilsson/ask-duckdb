@@ -19,23 +19,20 @@ from typing import Optional, Set, List, Dict, Any
 
 user_template = "Write an SQL query that returns - {}"
 system_template = """
-You are generating SQL for DuckDB. Use ONLY the columns in the provided DDL.
+You are generating SQL for DuckDB. Use ONLY the columns in the provided DDL
+and follow the authoritative column reference and rules below.
 Return SQL only (no markdown, no fences, no explanation).
 
 CREATE TABLE {tbl} ({schema});
 
-Rules:
-- The queue status lives in the column `status`. Do NOT use `state`, `rc_site_state`, `gstat`, or other lookalikes.
-- When filtering for online queues, use LOWER(status) = 'online'.
-- Prefer selecting the `name` column for queue identifiers if relevant.
-- Be case-insensitive by wrapping the compared column with LOWER(...).
-- Output a single valid SQL statement, and nothing else.
+{context}
+
+Output a single valid SQL statement, and nothing else.
 
 Example:
 -- User: list all queues that are online
 SELECT name FROM {tbl} WHERE LOWER(status) = 'online';
 """
-
 
 # =========================
 # Utilities
@@ -78,6 +75,87 @@ def list_columns(db: duckdb.DuckDBPyConnection, tbl_name: str) -> List[str]:
     """List column names for a table using DESCRIBE."""
     return [c["name"] for c in describe_columns(db, tbl_name)]
 
+
+def load_schema_metadata(path: str) -> Dict[str, Any]:
+    """Load the JSON data dictionary."""
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def select_relevant_context(question: str, meta: Dict[str, Any], top_k: int = 12) -> Dict[str, Any]:
+    """Pick the most relevant columns by simple keyword/alias matching + importance."""
+    q = question.lower()
+    scored = []
+    for col in meta.get("columns", []):
+        score = col.get("importance", 0)
+        names = [col["name"]] + col.get("aliases", [])
+        if any(n.lower() in q for n in names):
+            score += 100
+        scored.append((score, col))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return { "columns": [c for _, c in scored[:top_k]], "rules": meta.get("rules", []) }
+
+
+def render_context_for_prompt(ctx: Dict[str, Any]) -> str:
+    """Condense column docs + rules into a compact prompt section.
+
+    Handles different shapes of allowed_values:
+    - list of literals (e.g. ["online", "offline"])
+    - dict with 'enumeration'/'examples'/etc.
+    - booleans, numbers, etc.
+    """
+    lines: List[str] = ["# Column reference (authoritative)"]
+    for c in ctx.get("columns", []):
+        name = c.get("name", "?")
+        typ = c.get("type", "?")
+        desc = c.get("description", "")
+        aliases_list = c.get("aliases", []) or []
+        aliases = ", ".join(aliases_list) if aliases_list else "—"
+
+        # --- Build a short allowed-values preview, if possible ---
+        allowed_preview = ""
+        allowed = c.get("allowed_values")
+
+        # Case 1: simple list (e.g., ["online", "offline"] or [True, False])
+        if isinstance(allowed, list):
+            if allowed:
+                allowed_preview = ", ".join(str(a) for a in allowed[:5])
+
+        # Case 2: dict with further structure (e.g., enumeration/examples/range)
+        elif isinstance(allowed, dict):
+            enum = None
+            # Prefer 'enumeration', then 'examples', then 'values'
+            for key in ("enumeration", "examples", "values"):
+                v = allowed.get(key)
+                if isinstance(v, list):
+                    enum = v
+                    break
+            if enum:
+                allowed_preview = ", ".join(str(a) for a in enum[:5])
+            else:
+                # For numeric 'range', just show it briefly
+                rng = allowed.get("range")
+                if isinstance(rng, list) and len(rng) == 2:
+                    allowed_preview = f"range {rng[0]}–{rng[1]}"
+
+        allowed_str = f" Allowed: {allowed_preview}." if allowed_preview else ""
+
+        lines.append(f"- {name} ({typ}): {desc}{allowed_str} Aliases: {aliases}.")
+
+        # Optionally surface a duckdb_access hint
+        da = c.get("duckdb_access") or {}
+        if isinstance(da, dict):
+            ex = da.get("example")
+            if ex:
+                lines.append(f"  Access tip: {ex}")
+
+    rules = ctx.get("rules") or []
+    if rules:
+        lines.append("\n# Rules")
+        for r in rules:
+            lines.append(f"- {r}")
+
+    return "\n".join(lines)
 
 # =========================
 # NEW: Schema JSON skeleton generator
@@ -144,32 +222,107 @@ def write_schema_skeleton(path: str, data: Dict[str, Any]) -> None:
 # SQL auto-repair (existing)
 # =========================
 
-def fix_common_mistakes(sql: str, actual_cols: Set[str]) -> str:
-    """Repair common LLM SQL mistakes using the real schema."""
+def fix_common_mistakes(
+    sql: str,
+    actual_cols: Set[str],
+    synonym_map: Dict[str, str] | None = None,
+    meta: Dict[str, Any] | None = None,
+) -> str:
+    """Repair common LLM SQL mistakes using real schema + metadata.
+
+    Steps:
+      1) Replace known alias columns via synonym_map (e.g., state -> status).
+      2) Preserve your existing repairs (ONLINE -> 'online', fuzzy id fixes).
+      3) (Optional) Use metadata hints later if needed.
+    """
     fixed = sql
+    synonym_map = synonym_map or {}
 
-    tokens = re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*)\b", fixed)
-    if "state" in tokens:
-        if "status" in actual_cols and "state" not in actual_cols:
-            fixed = re.sub(r"\bstate\b", "status", fixed)
+    # 1) Replace synonyms (only if alias not in schema and canonical is)
+    #    e.g., "state" -> "status"
+    for alias_lc, canon in synonym_map.items():
+        # Word-bounded substitute if alias isn't a real column but canon is
+        if alias_lc not in actual_cols and canon in actual_cols:
+            fixed = re.sub(rf"\b{re.escape(alias_lc)}\b", canon, fixed, flags=re.IGNORECASE)
 
+    # 2) Your existing normalization for ONLINE
     fixed = re.sub(r"=\s*'ONLINE'", "='online'", fixed, flags=re.IGNORECASE)
 
+    # 3) Fuzzy-fix other unknown identifiers (avoid SQL keywords)
+    tokens = re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*)\b", fixed)
     keywords = {
         "select","from","where","and","or","not","in","as","on","join","left","right",
         "inner","outer","group","by","order","limit","offset","having","distinct",
-        "like","ilike","lower","upper","count","sum","avg","min","max"
+        "like","ilike","lower","upper","count","sum","avg","min","max","json","json_extract"
     }
-    token_set = set(tokens)
-    unknowns = [t for t in token_set if t.lower() not in keywords and t not in actual_cols]
+    unknowns = [t for t in set(tokens) if t.lower() not in keywords and t not in actual_cols]
 
     for t in unknowns:
-        candidates = difflib.get_close_matches(t, list(actual_cols), n=1, cutoff=0.86)
-        if candidates:
-            fixed = re.sub(rf"\b{re.escape(t)}\b", candidates[0], fixed)
+        best = difflib.get_close_matches(t, list(actual_cols), n=1, cutoff=0.86)
+        if best:
+            fixed = re.sub(rf"\b{re.escape(t)}\b", best[0], fixed)
 
     return fixed
 
+# --- Metadata-aware helpers ---
+
+def build_synonym_map(meta: Dict[str, Any] | None) -> Dict[str, str]:
+    """Build alias -> canonical column-name mapping from JSON metadata.
+
+    Synonyms are case-insensitive here (keys are lowercased).
+    Example: {"state": "status", "queue": "name"}
+    """
+    if not meta:
+        return {}
+    m: Dict[str, str] = {}
+    for col in meta.get("columns", []):
+        canon = col.get("name")
+        if not canon:
+            continue
+        for a in col.get("aliases", []):
+            if not a:
+                continue
+            m[a.lower()] = canon
+    return m
+
+
+def canonicalize_literals(sql: str, meta: Dict[str, Any] | None) -> str:
+    """Normalize literal values in the SQL using per-column canonicalization rules.
+
+    - Applies case normalization (lower/upper) to 'col = 'VALUE'' patterns.
+    - Replaces specific literal variants via map_values (e.g., 'ONLINE' -> 'online').
+    """
+    if not meta:
+        return sql
+
+    fixed = sql
+    # Apply case normalization for simple equality predicates: <col> = '<literal>'
+    for col in meta.get("columns", []):
+        colname = col.get("name")
+        if not colname:
+            continue
+
+        canon = col.get("canonicalization", {}) or {}
+        case_rule = (canon.get("case") or "none").lower()
+        if case_rule in ("lower", "upper"):
+            def _norm(m):
+                lit = m.group(1)
+                return f"{colname}='{lit.lower() if case_rule=='lower' else lit.upper()}'"
+            fixed = re.sub(
+                rf"(?i)\b{re.escape(colname)}\b\s*=\s*'([^']*)'",
+                _norm,
+                fixed,
+            )
+
+        # Replace specific literal variants
+        for src, dst in (canon.get("map_values") or {}).items():
+            fixed = re.sub(
+                rf"(?i)'{re.escape(src)}'",
+                lambda _: f"'{dst}'" if dst is not None else "NULL",
+                fixed,
+            )
+
+    return fixed
 
 # =========================
 # LLM clients (existing)
@@ -256,6 +409,8 @@ def main() -> None:
     ap.add_argument("--question", help="Natural-language question to turn into SQL.")
     ap.add_argument("--llm", choices=["gemini", "mistral"], default="gemini", help="LLM provider.")
     ap.add_argument("--model", help="Model name (e.g., gemini-2.5-flash, mistral-small-latest).")
+    ap.add_argument("--schema-meta", default="queuedata.schema.json",
+                    help="Path to JSON metadata for the table (default: queuedata.schema.json)")
 
     # NEW: schema skeleton options
     ap.add_argument("--generate-schema", action="store_true",
@@ -282,6 +437,13 @@ def main() -> None:
         print(f"Table '{tbl_name}' not found in {args.db}.", file=sys.stderr)
         sys.exit(2)
 
+    # Load metadata (optional)
+    meta: Dict[str, Any] | None = None
+    if args.schema_meta and os.path.exists(args.schema_meta):
+        with open(args.schema_meta, "r", encoding="utf-8") as f:
+            meta = json.load(f)
+    synonym_map = build_synonym_map(meta)
+
     # === NEW: handle schema skeleton generation and exit ===
     if args.generate_schema:
         cols = describe_columns(db, tbl_name)
@@ -296,8 +458,11 @@ def main() -> None:
         sys.exit(2)
 
     schema_str = build_tbl_schema(db, tbl_name)
-    system = system_template.format(tbl=tbl_name, schema=schema_str)
     user = user_template.format(args.question)
+    meta = load_schema_metadata(args.schema_meta)
+    ctx = select_relevant_context(args.question, meta, top_k=12)
+    context_str = render_context_for_prompt(ctx)
+    system = system_template.format(tbl=tbl_name, schema=schema_str, context=context_str)
 
     try:
         raw = ask_gemini(system, user, args.model or "gemini-2.5-pro") if args.llm == "gemini" \
@@ -306,11 +471,17 @@ def main() -> None:
         print(f"[{args.llm.capitalize()} call failed] {e}", file=sys.stderr)
         sys.exit(3)
 
+    # Clean markdown fences, then apply metadata-driven normalization/repairs
     sql = extract_code_from_markdown(raw) if is_markdown_code_chunk(raw) else raw
     sql = (sql or raw or "").strip()
 
+    # 1) Canonicalize literals using metadata (case rules, value maps)
+    if meta:
+        sql = canonicalize_literals(sql, meta)
+
+    # 2) Schema-aware repairs (synonyms, ONLINE case, fuzzy typo fixes)
     cols = set(list_columns(db, tbl_name))
-    repaired = fix_common_mistakes(sql, cols)
+    repaired = fix_common_mistakes(sql, cols, synonym_map=synonym_map, meta=meta)
 
     print("=== Cleaned SQL ===")
     print(repaired)

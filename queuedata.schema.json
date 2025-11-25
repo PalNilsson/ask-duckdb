@@ -325,7 +325,7 @@
         "special_values": {
           "null": "Value not available or not measured."
         },
-        "units": "HS06",
+        "units": "HS06"
       },
       "canonicalization": {
         "case": "none",
@@ -382,7 +382,7 @@
         "notes": "A scaling factor for queue or pilot depth; 1 means normal, higher values increase allowed concurrency.",
         "special_values": {
           "null": "Value not available or not measured."
-        },
+        }
       },
       "canonicalization": {
         "case": "none",
