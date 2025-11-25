@@ -289,14 +289,13 @@ def build_synonym_map(meta: Dict[str, Any] | None) -> Dict[str, str]:
 def canonicalize_literals(sql: str, meta: Dict[str, Any] | None) -> str:
     """Normalize literal values in the SQL using per-column canonicalization rules.
 
-    - Applies case normalization (lower/upper) to 'col = 'VALUE'' patterns.
-    - Replaces specific literal variants via map_values (e.g., 'ONLINE' -> 'online').
+    - Applies case normalization and map_values for <col> = 'VALUE'
+      and LOWER(<col>) = 'VALUE' patterns.
     """
     if not meta:
         return sql
 
     fixed = sql
-    # Apply case normalization for simple equality predicates: <col> = '<literal>'
     for col in meta.get("columns", []):
         colname = col.get("name")
         if not colname:
@@ -304,17 +303,35 @@ def canonicalize_literals(sql: str, meta: Dict[str, Any] | None) -> str:
 
         canon = col.get("canonicalization", {}) or {}
         case_rule = (canon.get("case") or "none").lower()
+
+        # 1) Normalize literals in patterns like:
+        #    colname = 'VALUE'
+        #    LOWER(colname) = 'VALUE'
         if case_rule in ("lower", "upper"):
-            def _norm(m):
+            def _norm_eq(m):
                 lit = m.group(1)
-                return f"{colname}='{lit.lower() if case_rule=='lower' else lit.upper()}'"
+                new_lit = lit.lower() if case_rule == "lower" else lit.upper()
+                return f"{colname}='{new_lit}'"
+
+            def _norm_lower(m):
+                lit = m.group(1)
+                new_lit = lit.lower() if case_rule == "lower" else lit.upper()
+                return f"LOWER({colname})='{new_lit}'"
+
+            # col = 'VALUE'
             fixed = re.sub(
                 rf"(?i)\b{re.escape(colname)}\b\s*=\s*'([^']*)'",
-                _norm,
+                _norm_eq,
+                fixed,
+            )
+            # LOWER(col) = 'VALUE'
+            fixed = re.sub(
+                rf"(?i)LOWER\s*\(\s*{re.escape(colname)}\s*\)\s*=\s*'([^']*)'",
+                _norm_lower,
                 fixed,
             )
 
-        # Replace specific literal variants
+        # 2) Apply map_values globally to any matching quoted literal
         for src, dst in (canon.get("map_values") or {}).items():
             fixed = re.sub(
                 rf"(?i)'{re.escape(src)}'",

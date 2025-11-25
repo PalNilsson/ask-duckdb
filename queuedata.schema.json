@@ -175,15 +175,16 @@
     {
       "name": "cloud",
       "type": "VARCHAR",
-      "description": "The cloud to which the queue belongs.",
-      "aliases": [],
+      "description": "Logical PanDA cloud/region code, to which a queue belongs, used for workload management (e.g. 'US', 'CA', 'EU'). Not the full country name.",
+      "aliases": ["region", "panda_cloud"],
       "importance": 5,
-      "allowed_values": ["CA", "CERN", "DE", "ES", "FR", "IT", "ND", "NL", "RU", "UK", "US", "WORLD"],
+      "allowed_values": {
+        "enumeration": ["CA", "CERN", "DE", "ES", "FR", "IT", "ND", "NL", "RU", "UK", "US", "WORLD"],
+        "notes": "Short region or cloud codes used internally by PanDA; do not confuse with the 'country' field."
+      },
       "canonicalization": {
         "case": "upper",
-        "map_values": {
-          "source_literal": "canonical_literal"
-        }
+        "map_values": {}
       }
     },
     {
@@ -349,13 +350,52 @@
     {
       "name": "country",
       "type": "VARCHAR",
-      "description": "The country where the queue is located.",
-      "aliases": [],
-      "importance": 5,
-      "allowed_values": [],
+      "description": "The country where the queue is located (full country name, e.g. 'United States', 'Germany', 'Japan').",
+      "aliases": ["nation", "country_name"],
+      "importance": 9,
+      "allowed_values": {
+        "enumeration": [
+          "Armenia",
+          "Australia",
+          "Brazil",
+          "Canada",
+          "Chile",
+          "China",
+          "Czechia",
+          "France",
+          "Germany",
+          "Hong Kong SAR",
+          "Israel",
+          "Italy",
+          "Japan",
+          "Morocco",
+          "Netherlands",
+          "Poland",
+          "Portugal",
+          "Romania",
+          "Russian Federation",
+          "Slovakia",
+          "Slovenia",
+          "Spain",
+          "Sweden",
+          "Switzerland",
+          "Taiwan",
+          "Turkey",
+          "United Kingdom",
+          "United States"
+        ],
+        "notes": "Stores full country names, not short codes like 'US'."
+      },
       "canonicalization": {
         "case": "none",
-        "map_values": {}
+        "map_values": {
+          "us": "United States",
+          "usa": "United States",
+          "america": "United States",
+          "american": "United States",
+          "united states of america": "United States",
+          "united state": "United States"
+        }
       }
     },
     {

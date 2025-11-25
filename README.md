@@ -62,4 +62,4 @@ Query the database directly
 Query an LLM (the SQL corresponding to the question will be generated and then executed against the database)
 1. `python3 query_llm.py --question "list all queues that are online" --llm mistral --model mistral-small-latest`
 2. `python3 query_llm.py --question "list all queues that are online that do not use the rucio copytool" --llm gemini --model gemini-2.5-flash`
-
+3. `python3 query_llm.py --question "list all american queues" --llm gemini --model gemini-2.5-flash`
